@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  log4j2.xml 변경 스니펫
+  기존 SocketAppender와 FileAppender를 병행 설정하여 비교 실험 가능
+  안정화 확인 후 SocketAppender 제거
+-->
+<Configuration status="warn">
+    <Appenders>
+
+        <!-- 기존 SocketAppender (tcplog receiver로 전송) -->
+        <Socket name="SocketAppender" host="localhost" port="54525" protocol="TCP">
+            <EcsLayout serviceName="your-service-name" />
+        </Socket>
+
+        <!-- 신규 FileAppender (filelog receiver가 읽음) -->
+        <RollingFile name="FileAppender"
+                     fileName="/var/log/app/app.log"
+                     filePattern="/var/log/app/app-%d{yyyy-MM-dd}-%i.log.gz">
+            <EcsLayout serviceName="your-service-name" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" />
+                <SizeBasedTriggeringPolicy size="100MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="10" />
+        </RollingFile>
+
+        <!-- 콘솔 (로컬 디버그용) -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger - %msg%n" />
+        </Console>
+
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <!-- 비교 실험: 둘 다 활성화 -->
+            <AppenderRef ref="SocketAppender" />
+            <AppenderRef ref="FileAppender" />
+
+            <!-- 안정화 후: FileAppender만 남기고 SocketAppender 제거 -->
+        </Root>
+    </Loggers>
+</Configuration>

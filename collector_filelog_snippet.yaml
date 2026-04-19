@@ -1,0 +1,46 @@
+# OTel Collector 설정 스니펫 — filelog receiver 추가
+# 기존 tcplog 파이프라인과 병행 운영 가능 (비교 실험용)
+
+receivers:
+  tcplog:                              # 기존 유지
+    listen_address: "0.0.0.0:54525"
+
+  filelog:                             # 추가
+    include:
+      - /var/log/app/*.log             # log4j2 FileAppender 경로에 맞게 수정
+    start_at: beginning                # 테스트 시 beginning, 운영 시 end
+    poll_interval: 200ms
+    operators:
+      - type: json_parser              # ECS JSON 파싱
+        timestamp:
+          parse_from: attributes["@timestamp"]
+          layout: "%Y-%m-%dT%H:%M:%S.%LZ"
+        severity:
+          parse_from: attributes["log"]["level"]
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1000
+
+exporters:
+  elasticsearch:
+    endpoints: ["http://localhost:9200"]
+    logs_index: "logs-app"
+    # ECS 매핑 모드 — 현재 인덱스 구조 유지에 필요
+    mapping:
+      mode: ecs
+
+service:
+  pipelines:
+    # 기존 tcplog 파이프라인
+    logs/socket:
+      receivers: [tcplog]
+      processors: [batch]
+      exporters: [elasticsearch]
+
+    # 신규 filelog 파이프라인 (비교 실험용, 안정화 후 socket 제거)
+    logs/file:
+      receivers: [filelog]
+      processors: [batch]
+      exporters: [elasticsearch]
