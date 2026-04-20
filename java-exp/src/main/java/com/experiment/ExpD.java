@@ -86,9 +86,9 @@ public class ExpD {
                 try {
                     for (int i = 0; i < count; i++) {
                         int seq = offset + i;
-                        // MDC로 run_id와 sequence 주입 → ECS Layout이 labels에 포함
+                        // run_id만 MDC에 주입 → ECS Layout이 labels.run_id로 매핑
+                        // event.sequence는 message에만 포함 (점 포함 label 키는 ES 매핑 오류 유발)
                         org.apache.logging.log4j.ThreadContext.put("run_id", runId);
-                        org.apache.logging.log4j.ThreadContext.put("event.sequence", String.valueOf(seq));
                         log.info("exp-d test doc seq={}", seq);
                         sent.incrementAndGet();
                     }
