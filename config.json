@@ -1,0 +1,18 @@
+{
+  "es_host": "http://localhost:9200",
+  "es_index_direct": "logs-test",
+  "es_index_pattern": "logs-*",
+  "collector_host": "localhost",
+  "collector_port": 54525,
+  "verify_wait_sec": 10,
+  "experiment": {
+    "total_docs": 1000,
+    "threads": 10,
+    "bulk_size": 50,
+    "steady_interval_sec": 0.6,
+    "burst_size_min": 30,
+    "burst_size_max": 40,
+    "burst_interval_min": 1.0,
+    "burst_interval_max": 5.0
+  }
+}

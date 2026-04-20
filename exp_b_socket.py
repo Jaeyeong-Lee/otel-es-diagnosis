@@ -18,27 +18,23 @@ import argparse
 from datetime import datetime, timezone
 
 import requests
+from config import (
+    ES_HOST, ES_INDEX_PATTERN as ES_INDEX,
+    COLLECTOR_HOST, COLLECTOR_PORT, VERIFY_WAIT_SEC,
+    TOTAL_DOCS, THREADS, STEADY_INTERVAL_SEC,
+    BURST_SIZE_MIN, BURST_SIZE_MAX, BURST_INTERVAL_MIN, BURST_INTERVAL_MAX,
+)
 
-# ──────────────────────────────────────────────
-# 설정
-# ──────────────────────────────────────────────
-COLLECTOR_HOST = "localhost"
-COLLECTOR_PORT = 54525       # OTel Collector tcplog receiver 포트
-ES_HOST = "http://localhost:9200"
-ES_INDEX = "logs-*"          # 실제 저장되는 인덱스 패턴
-VERIFY_WAIT_SEC = 10         # 전송 후 ES 반영 대기
-
-# 시나리오별 설정
 SCENARIO_STEADY = {
-    "total": 1000,
-    "threads": 10,
-    "interval_sec": 0.6,     # 건당 평균 간격 (10분에 1000건 ≈ 0.6초)
+    "total": TOTAL_DOCS,
+    "threads": THREADS,
+    "interval_sec": STEADY_INTERVAL_SEC,
 }
 SCENARIO_BURST = {
-    "total": 500,
-    "burst_size_range": (30, 40),
-    "burst_interval_range": (1.0, 5.0),   # 버스트 사이 대기 (초)
-    "threads": 5,
+    "total": TOTAL_DOCS // 2,
+    "burst_size_range": (BURST_SIZE_MIN, BURST_SIZE_MAX),
+    "burst_interval_range": (BURST_INTERVAL_MIN, BURST_INTERVAL_MAX),
+    "threads": THREADS // 2,
 }
 
 # ──────────────────────────────────────────────

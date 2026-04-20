@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  실험 D용 Log4j2 설정
+  SocketAppender + ECS Layout — 실제 운영 환경과 동일한 구조
+  호스트/포트는 시스템 프로퍼티로 주입 (ExpD.java에서 설정)
+-->
+<Configuration status="warn" name="ExpD">
+    <Appenders>
+        <Socket name="SocketAppender"
+                host="${sys:collector.host}"
+                port="${sys:collector.port}"
+                protocol="TCP"
+                reconnectionDelayMillis="1000">
+            <EcsLayout serviceName="${sys:service.name}"
+                       serviceVersion="1.0.0"
+                       eventDataset="exp-d.log"/>
+        </Socket>
+
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Logger name="com.experiment" level="INFO" additivity="false">
+            <AppenderRef ref="SocketAppender"/>
+        </Logger>
+        <Root level="WARN">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+</Configuration>

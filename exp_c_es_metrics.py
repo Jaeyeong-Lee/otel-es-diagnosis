@@ -10,13 +10,9 @@ import argparse
 from typing import Union
 
 import requests
+from config import ES_HOST, ES_INDEX_PATTERN as TARGET_INDEX
 
-# ──────────────────────────────────────────────
-# 설정
-# ──────────────────────────────────────────────
-ES_HOST = "http://localhost:9200"
-TARGET_INDEX = "logs-*"
-MONITOR_INTERVAL_SEC = 5    # 모니터링 모드에서 갱신 주기
+MONITOR_INTERVAL_SEC = 5
 
 
 def get(path: str) -> Union[dict, list]:

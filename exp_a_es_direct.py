@@ -11,16 +11,7 @@ from datetime import datetime, timezone
 from collections import defaultdict
 
 import requests
-
-# ──────────────────────────────────────────────
-# 설정
-# ──────────────────────────────────────────────
-ES_HOST = "http://localhost:9200"
-INDEX = "logs-test"
-TOTAL_DOCS = 1000
-THREADS = 10
-BULK_SIZE = 50          # 한 번의 Bulk 요청에 담을 문서 수
-VERIFY_WAIT_SEC = 5     # 전송 후 ES 반영 대기 시간 (초)
+from config import ES_HOST, ES_INDEX_DIRECT as INDEX, TOTAL_DOCS, THREADS, BULK_SIZE, VERIFY_WAIT_SEC
 
 # ──────────────────────────────────────────────
 # 전역 상태
