@@ -7,6 +7,7 @@
 import json
 import time
 import argparse
+from typing import Union
 
 import requests
 
@@ -18,7 +19,7 @@ TARGET_INDEX = "logs-*"
 MONITOR_INTERVAL_SEC = 5    # 모니터링 모드에서 갱신 주기
 
 
-def get(path: str) -> dict | list:
+def get(path: str) -> Union[dict, list]:
     resp = requests.get(f"{ES_HOST}{path}", timeout=10)
     resp.raise_for_status()
     return resp.json()
@@ -144,4 +145,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except requests.exceptions.ConnectionError:
+        print(f"\n[ERROR] ES에 연결할 수 없습니다: {ES_HOST}")
+        print("  ES_HOST 설정을 확인하고 ES가 실행 중인지 확인하세요.")
+    except requests.exceptions.HTTPError as e:
+        print(f"\n[ERROR] ES 응답 오류: {e}")

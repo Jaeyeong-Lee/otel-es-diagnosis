@@ -106,7 +106,18 @@ def count_in_es() -> int:
     return resp.json().get("count", -1)
 
 
+def check_es_connection():
+    try:
+        requests.get(f"{ES_HOST}/_cluster/health", timeout=5)
+    except requests.exceptions.ConnectionError:
+        print(f"[ERROR] ES에 연결할 수 없습니다: {ES_HOST}")
+        print("  ES_HOST 설정을 확인하고 ES가 실행 중인지 확인하세요.")
+        raise SystemExit(1)
+
+
 def main():
+    check_es_connection()
+
     print(f"[실험 A] ES 직접 전송 테스트")
     print(f"  run_id  : {run_id}")
     print(f"  index   : {INDEX}")
@@ -156,4 +167,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except requests.exceptions.ConnectionError:
+        print(f"\n[ERROR] ES에 연결할 수 없습니다: {ES_HOST}")
+        print("  ES_HOST 설정을 확인하고 ES가 실행 중인지 확인하세요.")
+    except requests.exceptions.HTTPError as e:
+        print(f"\n[ERROR] ES 응답 오류: {e}")
