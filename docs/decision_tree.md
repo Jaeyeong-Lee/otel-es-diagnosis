@@ -19,16 +19,22 @@
 │
 └── 누락 없음
     │
-    실험 B 실행 (Socket 경유)
+    실험 B — STEADY / BURST 각각 별도 실행
+    │  (주의: --scenario both는 run_id 공유로 count 오염됨 → 별도 실행 필수)
     │
-    ├── 누락 발생
-    │   ├── STEADY에서 발생    → [SOCK-1] 지속 연결 중 드롭
-    │   ├── BURST에서만 발생   → [SOCK-2] 큐 초과 시 드롭
-    │   └── → filelog 전환 후 재실험
-    │       ├── 누락 사라짐    → Socket이 원인 확정
-    │       └── 여전히 누락   → Collector → ES 구간 문제
+    ├── STEADY 누락 있음
+    │   │
+    │   실험 D 실행 (Java Log4j2 SocketAppender)
+    │   │
+    │   ├── 누락 없음  → [EXP_B_ARTIFACT] exp_b 구현 문제 (연결 즉시 close)
+    │   │               실제 운영 스택은 정상. exp_b 코드 수정 필요.
+    │   │
+    │   └── 누락 있음  → [SOCK-REAL] 실제 운영 스택에서도 드롭 발생
+    │                    → [SOCK-1] 확인 항목 참고
     │
-    └── 누락 없음
+    ├── BURST만 누락   → [SOCK-2] 버스트 시 Collector 큐 초과
+    │
+    └── 둘 다 없음
         └── → [UNKNOWN] 낮은 부하에서는 재현 안 됨
             → 더 높은 동시성으로 재실험
             → Collector debug 로그 활성화
@@ -89,6 +95,45 @@ processors:
 **조치 (중기):**
 - ES 노드 리소스 점검 (heap, CPU)
 - write thread pool 크기 조정 (`thread_pool.write.size`)
+
+---
+
+### [EXP_B_ARTIFACT] exp_b 구현 아티팩트
+
+**원인:** exp_b(Python)는 청크마다 TCP 연결을 새로 열고 즉시 닫습니다.
+실제 Log4j2 SocketAppender는 하나의 연결을 유지하므로 동작 방식이 다릅니다.
+
+```python
+# exp_b의 현재 구조 (문제)
+with socket.create_connection(...) as s:
+    s.sendall(data)
+# with 종료 → 즉시 close() → Collector가 다 읽기 전에 연결 끊김 가능
+```
+
+**의미:** exp_b에서 30% 누락이 나왔더라도 exp_d(Java)에서 누락이 없으면
+실제 운영 환경은 정상이고, 실험 방법론의 문제입니다.
+
+---
+
+### [SOCK-REAL] 실제 SocketAppender에서 드롭
+
+**exp_d에서도 누락이 발생하는 경우 확인할 것:**
+
+1. **JVM 종료 타이밍 (가장 흔한 원인)**
+   - JVM shutdown hook 실행 시 Log4j2가 닫히면서 내부 버퍼가 flush되기 전에 소켓 close
+   - log4j2.xml에 `shutdownHook="disable"` 설정 후 앱 코드에서 명시적으로 `LogManager.shutdown()` 호출
+
+2. **AsyncAppender 큐 미소진**
+   - AsyncAppender 내부 LMAX Disruptor 큐에 쌓인 로그가 flush되기 전에 종료
+   - `log4j2.xml`에서 AsyncAppender의 `shutdownTimeout` 설정 확인
+
+3. **reconnect 중 드롭**
+   - Collector 재시작 또는 네트워크 순단 시 reconnect 전 로그 유실
+   - `reconnectionDelayMillis` 값 확인, 재연결 중 로그를 별도 버퍼에 보관하는 구조 검토
+
+4. **SO_LINGER 설정**
+   - `l_linger=0`이면 close() 즉시 RST 전송 → 미전송 데이터 유실
+   - JVM 기본값은 linger 없음이나, 네트워크 장비/설정에 따라 다를 수 있음
 
 ---
 
