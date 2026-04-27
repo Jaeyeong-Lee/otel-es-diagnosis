@@ -161,10 +161,18 @@ exp_b 30% 누락이 실제 운영 문제인지 실험 구현 문제인지 불분
 - exp_d 누락 없음 → exp_b 구현 아티팩트. 운영 스택은 정상.
 - exp_d 누락 있음 → 실제 문제. JVM 종료 타이밍, AsyncAppender flush, reconnect 구간 확인.
 
+### AsyncAppender 관련 추가 확인
+
+현재 앱이 AsyncAppender 사용 중. JVM 종료 시 내부 큐 미소진이 유실 원인일 수 있음.
+`shutdownTimeout`은 JVM 종료 시 큐를 비울 때까지 기다리는 최대 시간 (기본값이 짧거나 0).
+→ Log4j2 설정만으로 해결 가능. Collector 변경 불필요.
+→ 상세: `docs/async_appender_shutdown.md`
+
 미완료:
 - [ ] exp_b --scenario steady / burst 각각 별도 실행
 - [ ] exp_d (Java) 실행
-- [ ] exp_d 결과에 따라 docs/decision_tree.md [SOCK-REAL] 또는 [EXP_B_ARTIFACT] 분기 확인
+- [ ] exp_d 누락 없음 → 운영 정상 확인
+- [ ] exp_d 누락 있음 → async_appender_shutdown.md 방법 1~3 적용
 
 ---
 
